@@ -7,7 +7,7 @@ Static, mobile-first website for a Steamboat Springs lawn mowing and property cl
 - Replace the business name in `index.html`.
 - Update the phone/text links and visible numbers in `index.html`.
 - Update `Crcaretaker@gmail.com` if the owner uses a different email.
-- Replace `https://example.com/` in the JSON-LD, `robots.txt`, and `sitemap.xml` with the real published domain before submitting to Google.
+- Replace the GitHub Pages URL in the JSON-LD, `robots.txt`, and `sitemap.xml` if you later connect a custom domain.
 - Replace `hero-steamboat.png` with an approved local photo if desired. Keep the filename or update the image references.
 - Edit services directly in the service cards.
 
