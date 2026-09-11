@@ -1,13 +1,118 @@
-const toggle=document.querySelector('.menu-toggle');const nav=document.querySelector('nav');toggle?.addEventListener('click',()=>{const open=toggle.getAttribute('aria-expanded')==='true';toggle.setAttribute('aria-expanded',String(!open));toggle.setAttribute('aria-label',open?'Open menu':'Close menu');nav.classList.toggle('mobile-open',!open)});nav?.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>{toggle?.setAttribute('aria-expanded','false');toggle?.setAttribute('aria-label','Open menu');nav.classList.remove('mobile-open')}));
+const toggle = document.querySelector('.menu-toggle');
+const nav = document.querySelector('nav');
 
-// Desktop browsers may have no handler for tel:, sms:, or mailto:. Keep those
-// links native on phones, but keep desktop visitors on the page instead of
-// allowing an empty handoff tab.
-const isDesktop=()=>window.matchMedia('(min-width: 851px)').matches;
-document.querySelectorAll('a[href^="tel:"],a[href^="sms:"],a[href^="mailto:"]').forEach(link=>link.addEventListener('click',event=>{if(!isDesktop())return;event.preventDefault();document.querySelector('#contact')?.scrollIntoView({behavior:'smooth'});document.querySelector('.quote-form input')?.focus({preventScroll:true})}));
-const form=document.querySelector('.quote-form');form?.addEventListener('submit',event=>{if(!isDesktop())return;event.preventDefault();let status=document.querySelector('.form-status');if(!status){status=document.createElement('p');status.className='form-status';form.append(status)}status.textContent='Your request is ready. Please text 970 846 0980 or email Crcaretaker@gmail.com from your device.';status.setAttribute('role','status')});
+toggle?.addEventListener('click', () => {
+  const open = toggle.getAttribute('aria-expanded') === 'true';
+  toggle.setAttribute('aria-expanded', String(!open));
+  toggle.setAttribute('aria-label', open ? 'Open menu' : 'Close menu');
+  nav.classList.toggle('mobile-open', !open);
+});
 
-const estimateForm=document.querySelector('#estimate-form');const estimateResult=document.querySelector('#estimate-result');const photoInput=document.querySelector('#yard-photos');const photoPreview=document.querySelector('#photo-preview');let estimateText='';
-photoInput?.addEventListener('change',()=>{photoPreview.innerHTML='';[...photoInput.files].slice(0,4).forEach(file=>{const img=document.createElement('img');img.alt=`Uploaded yard photo: ${file.name}`;img.src=URL.createObjectURL(file);photoPreview.append(img)});if(photoInput.files.length>4){const note=document.createElement('small');note.textContent=`${photoInput.files.length-4} more photo(s) selected`;photoPreview.append(note)}});
-estimateForm?.addEventListener('submit',event=>{event.preventDefault();const data=new FormData(estimateForm);const sqft=Number(data.get('sqft'));const size=data.get('size');const sizeBase={small:65,medium:85,large:115,xl:155}[size];const exactBase=sqft>0?(sqft<2500?65:sqft<6000?85:sqft<12000?115:155):sizeBase;const terrainAdd={flat:0,mixed:15,steep:30}[data.get('terrain')];const extras=(data.get('trim')?15:0)+(data.get('cleanup')?35:0)+(data.get('commercial')?25:0);const frequency=data.get('frequency');const multiplier={one:1,weekly:.9,biweekly:1}[frequency];const low=Math.round((exactBase+terrainAdd+extras)*multiplier/5)*5;const high=low+25;document.querySelector('.result-price').textContent=`$${low}–$${high}`;document.querySelector('#result-details').innerHTML=`<span>${sqft>0?`${sqft.toLocaleString()} sq ft`:({small:'Small yard',medium:'Medium yard',large:'Large yard',xl:'Very large yard'}[size])}</span><span>${({flat:'Mostly flat',mixed:'Some slope',steep:'Steep areas'}[data.get('terrain')])}</span><span>${({one:'One-time visit',weekly:'Weekly mowing',biweekly:'Every other week'}[frequency])}</span>`;estimateText=`C.R. Caretaker planning range: $${low}–$${high}. Yard: ${sqft>0?`${sqft.toLocaleString()} sq ft`:size}. Terrain: ${data.get('terrain')}. Frequency: ${frequency}.`;estimateResult.hidden=false;estimateResult.scrollIntoView({behavior:'smooth',block:'nearest'});});
-document.querySelector('.result-close')?.addEventListener('click',()=>{estimateResult.hidden=true});document.querySelector('.copy-estimate')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(estimateText);document.querySelector('.copy-status').textContent='Estimate details copied.'}catch{document.querySelector('.copy-status').textContent='Select and copy the estimate details from the range above.'}});
+nav?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => {
+  toggle?.setAttribute('aria-expanded', 'false');
+  toggle?.setAttribute('aria-label', 'Open menu');
+  nav.classList.remove('mobile-open');
+}));
+
+const photoInput = document.querySelector('#yard-photos');
+const photoPreview = document.querySelector('#photo-preview');
+
+photoInput?.addEventListener('change', () => {
+  photoPreview.innerHTML = '';
+  [...photoInput.files].slice(0, 4).forEach((file) => {
+    const image = document.createElement('img');
+    image.alt = `Selected yard photo: ${file.name}`;
+    image.src = URL.createObjectURL(file);
+    photoPreview.append(image);
+  });
+  if (photoInput.files.length > 4) {
+    const note = document.createElement('small');
+    note.textContent = `${photoInput.files.length - 4} more photo(s) selected`;
+    photoPreview.append(note);
+  }
+});
+
+const preferredDate = document.querySelector('#preferred-date');
+if (preferredDate) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  preferredDate.min = tomorrow.toISOString().slice(0, 10);
+  preferredDate.value = tomorrow.toISOString().slice(0, 10);
+}
+
+const marketBands = [
+  { max: 1000, low: 35, high: 45 },
+  { max: 2000, low: 40, high: 55 },
+  { max: 3000, low: 45, high: 65 },
+  { max: 4000, low: 55, high: 75 },
+  { max: 5500, low: 65, high: 90 },
+  { max: 7000, low: 75, high: 105 },
+];
+
+const bookingForm = document.querySelector('#booking-form');
+const requestResult = document.querySelector('#request-result');
+let requestText = '';
+
+function formatDate(value) {
+  return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(`${value}T12:00:00`));
+}
+
+bookingForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const data = new FormData(bookingForm);
+  const sqft = Number(data.get('sqft'));
+  const band = marketBands.find((entry) => sqft <= entry.max);
+  const service = data.get('service');
+  const terrain = data.get('terrain');
+  const extras = [data.get('trim') ? 'Trimming & edging' : '', data.get('cleanup') ? 'Leaf or debris cleanup' : ''].filter(Boolean);
+  const date = data.get('date');
+  const time = data.get('time');
+  const price = document.querySelector('.result-price');
+  const copy = document.querySelector('#result-copy');
+  const details = document.querySelector('#result-details');
+
+  if (band && terrain === 'flat' && !extras.length) {
+    price.textContent = `$${band.low}–$${band.high}`;
+    copy.textContent = 'Typical local per-visit planning guide for a mostly flat lawn. It is not a C.R. Caretaker quote or a confirmed appointment.';
+  } else if (band) {
+    price.textContent = `$${band.low}+`;
+    copy.textContent = 'Your lawn has details that can change the work. We’ll confirm a clear per-visit quote before scheduling anything.';
+  } else {
+    price.textContent = 'Custom quote';
+    copy.textContent = 'Larger lawns need a quick review so the scope and price are fair from the start.';
+  }
+
+  details.innerHTML = [
+    `${sqft.toLocaleString()} sq ft`,
+    service === 'one-time' ? 'One-time visit' : service === 'weekly' ? 'Weekly service' : 'Every other week',
+    terrain === 'flat' ? 'Mostly flat' : terrain === 'mixed' ? 'Some slope' : 'Steep / uneven',
+    `Requested: ${formatDate(date)}, ${time}`,
+    ...extras,
+  ].map((item) => `<span>${item}</span>`).join('');
+
+  requestText = `C.R. Caretaker visit request\nService: ${service}\nLawn: ${sqft.toLocaleString()} sq ft\nTerrain: ${terrain}\nPreferred time: ${formatDate(date)}, ${time}${extras.length ? `\nExtras: ${extras.join(', ')}` : ''}`;
+  requestResult.hidden = false;
+  requestResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+document.querySelector('.result-close')?.addEventListener('click', () => { requestResult.hidden = true; });
+
+document.querySelector('.copy-estimate')?.addEventListener('click', async () => {
+  const status = document.querySelector('.copy-status');
+  try {
+    await navigator.clipboard.writeText(requestText);
+    status.textContent = 'Request details copied. Paste them into a text or email so we can confirm availability.';
+  } catch {
+    status.textContent = 'Copy is unavailable here. Select the request details above and copy them manually.';
+  }
+});
+
+document.querySelector('.copy-contact')?.addEventListener('click', async () => {
+  const status = document.querySelector('.contact-copy-status');
+  try {
+    await navigator.clipboard.writeText('C.R. Caretaker\nCall or text: 970 846 0980\nAlternate call: 970 457 0542\nEmail: Crcaretaker@gmail.com');
+    status.textContent = 'Contact details copied.';
+  } catch {
+    status.textContent = 'Copy is unavailable here. Please select the contact details above.';
+  }
+});
