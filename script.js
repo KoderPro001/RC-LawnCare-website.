@@ -90,9 +90,11 @@ bookingForm?.addEventListener('submit', (event) => {
 
   const range = planningRange(sqft, terrain, extras);
   price.textContent = `$${range.low}–$${range.high}`;
-  copy.textContent = terrain === 'flat' && !extras.length
-    ? 'Typical per-visit planning range for routine mowing. It is based on exact lawn size, not a broad yard category, and is not a final quote or confirmed appointment.'
-    : 'This bounded planning range includes the slope and services you selected. We’ll confirm the work and a clear per-visit quote before reserving a visit.';
+  copy.textContent = service !== 'one-time'
+    ? 'This is a one-time visit planning range. Ongoing-service pricing is confirmed separately after availability is reviewed.'
+    : terrain === 'flat' && !extras.length
+      ? 'Typical per-visit planning range for routine mowing. It is based on exact lawn size, not a broad yard category, and is not a final quote or confirmed appointment.'
+      : 'This bounded planning range includes the slope and services you selected. We’ll confirm the work and a clear per-visit quote before reserving a visit.';
 
   details.innerHTML = [
     `${sqft.toLocaleString()} sq ft`,
