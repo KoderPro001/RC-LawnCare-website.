@@ -6,8 +6,12 @@ const verifiedScope={
   'Custom yard care':'Tell us what you need so we can confirm whether it fits the current setup: two mowers, a trimmer, weed puller, and edger.'
 };
 document.querySelectorAll('.service-card').forEach((card)=>{const title=card.querySelector('h3')?.textContent.trim();const copy=card.querySelector('p');if(title&&copy&&verifiedScope[title])copy.textContent=verifiedScope[title]});
+document.querySelectorAll('.service-card h3').forEach((heading)=>{if(heading.textContent.trim()==='Seasonal cleanup')heading.textContent='Optional cleanup'});
 const serviceFacts=document.querySelector('#service-facts');
 document.querySelector('#services')?.after(serviceFacts);
+if(serviceFacts){serviceFacts.innerHTML='<div class="setup-note"><span>Current setup</span><p>Two mowers, a trimmer, weed puller, and edger. Share the property details with your request so we can confirm the right scope.</p></div>';}
+const requestNotes=document.querySelector('#service-notes');
+if(requestNotes){requestNotes.innerHTML='<div class="section-heading"><div><p class="eyebrow"><span></span> Before you request</p><h2>Useful details,<br><em>without the guessing.</em></h2></div><p>Your selected day and window are a request, not a reserved appointment. We confirm the final scope and availability directly.</p></div><div class="facts-grid"><article><span>01</span><h3>Weather changes</h3><p>If conditions change, we confirm another option directly.</p></article><article><span>02</span><h3>Photo requests</h3><p>Photos stay on your device. Attach them manually after Messages or Mail opens.</p></article></div>';}
 document.querySelectorAll('.service-icon').forEach((icon)=>icon.remove());
 const photoHelper=document.querySelector('.photo-helper');
 if(photoHelper)photoHelper.textContent='Photos stay on this device. After Messages or Mail opens, attach any photos manually.';
