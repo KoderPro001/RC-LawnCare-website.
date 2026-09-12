@@ -1,4 +1,13 @@
 const BUSINESS={phone:'9708460980',email:'Crcaretaker@gmail.com'};
+const verifiedScope={
+  'Routine lawn mowing':'Choose a preferred time request. Routine mowing means mowing the lawn only.',
+  'Trimming & edging':'Select this when you want trimming and edges cleaned up around the areas you identify.',
+  'Seasonal cleanup':'Optional short-grass trimming plus removal of leaves, twigs, and weeds.',
+  'Custom yard care':'Tell us what you need so we can confirm whether it fits the current setup: two mowers, a trimmer, weed puller, and edger.'
+};
+document.querySelectorAll('.service-card').forEach((card)=>{const title=card.querySelector('h3')?.textContent.trim();const copy=card.querySelector('p');if(title&&copy&&verifiedScope[title])copy.textContent=verifiedScope[title]});
+const serviceFacts=document.querySelector('#service-facts');
+document.querySelector('#services')?.after(serviceFacts);
 document.querySelectorAll('.service-icon').forEach((icon)=>icon.remove());
 const photoHelper=document.querySelector('.photo-helper');
 if(photoHelper)photoHelper.textContent='Photos stay on this device. After Messages or Mail opens, attach any photos manually.';
