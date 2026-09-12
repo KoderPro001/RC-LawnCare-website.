@@ -40,14 +40,32 @@ if (preferredDate) {
   preferredDate.value = tomorrow.toISOString().slice(0, 10);
 }
 
-const marketBands = [
-  { max: 1000, low: 35, high: 45 },
-  { max: 2000, low: 40, high: 55 },
-  { max: 3000, low: 45, high: 65 },
-  { max: 4000, low: 55, high: 75 },
-  { max: 5500, low: 65, high: 90 },
-  { max: 7000, low: 75, high: 105 },
-];
+// A transparent, continuous planning guide — not a quote. The calculation uses
+// the exact mowable square footage so a one-square-foot change never jumps to a
+// different price tier. The owner can revise these figures after finalizing rates.
+function planningRange(sqft, terrain, extras) {
+  let low = Math.max(35, Math.round(30 + (sqft * 0.007)));
+  let high = Math.max(low + 10, Math.round(42 + (sqft * 0.0085)));
+
+  if (terrain === 'mixed') {
+    low = Math.round(low * 1.1);
+    high = Math.round(high * 1.18);
+  }
+  if (terrain === 'steep') {
+    low = Math.round(low * 1.2);
+    high = Math.round(high * 1.35);
+  }
+  if (extras.includes('Trimming & edging')) {
+    low += 8;
+    high += 12;
+  }
+  if (extras.includes('Leaf or debris cleanup')) {
+    low += 15;
+    high += 25;
+  }
+
+  return { low, high };
+}
 
 const bookingForm = document.querySelector('#booking-form');
 const requestResult = document.querySelector('#request-result');
@@ -61,7 +79,6 @@ bookingForm?.addEventListener('submit', (event) => {
   event.preventDefault();
   const data = new FormData(bookingForm);
   const sqft = Number(data.get('sqft'));
-  const band = marketBands.find((entry) => sqft <= entry.max);
   const service = data.get('service');
   const terrain = data.get('terrain');
   const extras = [data.get('trim') ? 'Trimming & edging' : '', data.get('cleanup') ? 'Leaf or debris cleanup' : ''].filter(Boolean);
@@ -71,16 +88,11 @@ bookingForm?.addEventListener('submit', (event) => {
   const copy = document.querySelector('#result-copy');
   const details = document.querySelector('#result-details');
 
-  if (band && terrain === 'flat' && !extras.length) {
-    price.textContent = `$${band.low}–$${band.high}`;
-    copy.textContent = 'Typical local per-visit planning guide for a mostly flat lawn. It is not a C.R. Caretaker quote or a confirmed appointment.';
-  } else if (band) {
-    price.textContent = `$${band.low}+`;
-    copy.textContent = 'Your lawn has details that can change the work. We’ll confirm a clear per-visit quote before scheduling anything.';
-  } else {
-    price.textContent = 'Custom quote';
-    copy.textContent = 'Larger lawns need a quick review so the scope and price are fair from the start.';
-  }
+  const range = planningRange(sqft, terrain, extras);
+  price.textContent = `$${range.low}–$${range.high}`;
+  copy.textContent = terrain === 'flat' && !extras.length
+    ? 'Typical per-visit planning range for routine mowing. It is based on exact lawn size, not a broad yard category, and is not a final quote or confirmed appointment.'
+    : 'This bounded planning range includes the slope and services you selected. We’ll confirm the work and a clear per-visit quote before reserving a visit.';
 
   details.innerHTML = [
     `${sqft.toLocaleString()} sq ft`,

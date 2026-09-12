@@ -27,6 +27,6 @@ All phone numbers and contact details are placeholders from the project brief an
 
 ## Booking and planning guide
 
-The planning guide uses exact lawn square footage and clear local-market ranges; update the `marketBands` values near the top of `script.js` once the owner finalizes pricing. The date and arrival-window fields collect a preferred visit time only. To prevent double booking across all visitors, connect a shared booking calendar such as Google Calendar Appointment Schedules, Calendly, or a similar service and replace the confirmation workflow.
+The planning guide uses exact lawn square footage and a continuous calculation; update `planningRange()` near the top of `script.js` once the owner finalizes pricing. The date and arrival-window fields collect a preferred visit time only. To prevent double booking across all visitors, connect a shared booking calendar such as Google Calendar Appointment Schedules, Calendly, or a similar service and replace the confirmation workflow.
 
 Photo selection is local preview only. The current static site does not upload photos or use AI image analysis. A secure form endpoint and an AI/API service would be required before claiming automated photo-based size or slope analysis.
