@@ -1,18 +1,31 @@
 const toggle = document.querySelector('.menu-toggle');
 const nav = document.querySelector('nav');
 
+function closeMenu(restoreFocus = false) {
+  toggle?.setAttribute('aria-expanded', 'false');
+  toggle?.setAttribute('aria-label', 'Open menu');
+  nav?.classList.remove('mobile-open');
+  if (restoreFocus) toggle?.focus();
+}
+
 toggle?.addEventListener('click', () => {
   const open = toggle.getAttribute('aria-expanded') === 'true';
+  if (open) {
+    closeMenu(true);
+    return;
+  }
   toggle.setAttribute('aria-expanded', String(!open));
   toggle.setAttribute('aria-label', open ? 'Open menu' : 'Close menu');
   nav.classList.toggle('mobile-open', !open);
 });
 
 nav?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => {
-  toggle?.setAttribute('aria-expanded', 'false');
-  toggle?.setAttribute('aria-label', 'Open menu');
-  nav.classList.remove('mobile-open');
+  closeMenu();
 }));
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && toggle?.getAttribute('aria-expanded') === 'true') closeMenu(true);
+});
 
 const photoInput = document.querySelector('#yard-photos');
 const photoPreview = document.querySelector('#photo-preview');
@@ -36,8 +49,9 @@ const preferredDate = document.querySelector('#preferred-date');
 if (preferredDate) {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  preferredDate.min = tomorrow.toISOString().slice(0, 10);
-  preferredDate.value = tomorrow.toISOString().slice(0, 10);
+  const localDateValue = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+  preferredDate.min = localDateValue;
+  preferredDate.value = localDateValue;
 }
 
 // A transparent, continuous planning guide — not a quote. The calculation uses
