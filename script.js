@@ -96,13 +96,13 @@ bookingForm?.addEventListener('submit', (event) => {
 
   details.innerHTML = [
     `${sqft.toLocaleString()} sq ft`,
-    service === 'one-time' ? 'One-time visit' : service === 'weekly' ? 'Weekly service' : 'Every other week',
+    service === 'one-time' ? 'One-time visit' : service === 'weekly' ? 'Asked about weekly care' : 'Asked about every-other-week care',
     terrain === 'flat' ? 'Mostly flat' : terrain === 'mixed' ? 'Some slope' : 'Steep / uneven',
     `Requested: ${formatDate(date)}, ${time}`,
     ...extras,
   ].map((item) => `<span>${item}</span>`).join('');
 
-  requestText = `C.R. Caretaker visit request\nService: ${service}\nLawn: ${sqft.toLocaleString()} sq ft\nTerrain: ${terrain}\nPreferred time: ${formatDate(date)}, ${time}${extras.length ? `\nExtras: ${extras.join(', ')}` : ''}`;
+  requestText = `C.R. Caretaker visit request\nService: ${service === 'one-time' ? 'one-time mowing' : service === 'weekly' ? 'ask about weekly care' : 'ask about every-other-week care'}\nLawn: ${sqft.toLocaleString()} sq ft\nTerrain: ${terrain}\nPreferred time: ${formatDate(date)}, ${time}${extras.length ? `\nExtras: ${extras.join(', ')}` : ''}`;
   requestResult.hidden = false;
   requestResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
