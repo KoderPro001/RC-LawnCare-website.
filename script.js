@@ -1,4 +1,7 @@
 const BUSINESS={phone:'9708460980',email:'Crcaretaker@gmail.com'};
+document.querySelectorAll('.service-icon').forEach((icon)=>icon.remove());
+const photoHelper=document.querySelector('.photo-helper');
+if(photoHelper)photoHelper.textContent='Photos stay on this device. After Messages or Mail opens, attach any photos manually.';
 const toggle=document.querySelector('.menu-toggle'),nav=document.querySelector('#site-navigation');
 const closeMenu=(focus=false)=>{toggle?.setAttribute('aria-expanded','false');toggle?.setAttribute('aria-label','Open menu');nav?.classList.remove('mobile-open');if(focus)toggle?.focus()};
 toggle?.addEventListener('click',()=>{if(toggle.getAttribute('aria-expanded')==='true')return closeMenu(true);toggle.setAttribute('aria-expanded','true');toggle.setAttribute('aria-label','Close menu');nav?.classList.add('mobile-open')});nav?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>closeMenu()));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&toggle?.getAttribute('aria-expanded')==='true')closeMenu(true)});
