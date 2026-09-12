@@ -1,146 +1,16 @@
-const toggle = document.querySelector('.menu-toggle');
-const nav = document.querySelector('nav');
-
-function closeMenu(restoreFocus = false) {
-  toggle?.setAttribute('aria-expanded', 'false');
-  toggle?.setAttribute('aria-label', 'Open menu');
-  nav?.classList.remove('mobile-open');
-  if (restoreFocus) toggle?.focus();
-}
-
-toggle?.addEventListener('click', () => {
-  const open = toggle.getAttribute('aria-expanded') === 'true';
-  if (open) {
-    closeMenu(true);
-    return;
-  }
-  toggle.setAttribute('aria-expanded', String(!open));
-  toggle.setAttribute('aria-label', open ? 'Open menu' : 'Close menu');
-  nav.classList.toggle('mobile-open', !open);
-});
-
-nav?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => {
-  closeMenu();
-}));
-
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && toggle?.getAttribute('aria-expanded') === 'true') closeMenu(true);
-});
-
-const photoInput = document.querySelector('#yard-photos');
-const photoPreview = document.querySelector('#photo-preview');
-
-photoInput?.addEventListener('change', () => {
-  photoPreview.innerHTML = '';
-  [...photoInput.files].slice(0, 4).forEach((file) => {
-    const image = document.createElement('img');
-    image.alt = `Selected yard photo: ${file.name}`;
-    image.src = URL.createObjectURL(file);
-    photoPreview.append(image);
-  });
-  if (photoInput.files.length > 4) {
-    const note = document.createElement('small');
-    note.textContent = `${photoInput.files.length - 4} more photo(s) selected`;
-    photoPreview.append(note);
-  }
-});
-
-const preferredDate = document.querySelector('#preferred-date');
-if (preferredDate) {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const localDateValue = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
-  preferredDate.min = localDateValue;
-  preferredDate.value = localDateValue;
-}
-
-// A transparent, continuous planning guide — not a quote. The calculation uses
-// the exact mowable square footage so a one-square-foot change never jumps to a
-// different price tier. The owner can revise these figures after finalizing rates.
-function planningRange(sqft, terrain, extras) {
-  let low = Math.max(35, Math.round(30 + (sqft * 0.007)));
-  let high = Math.max(low + 10, Math.round(42 + (sqft * 0.0085)));
-
-  if (terrain === 'mixed') {
-    low = Math.round(low * 1.1);
-    high = Math.round(high * 1.18);
-  }
-  if (terrain === 'steep') {
-    low = Math.round(low * 1.2);
-    high = Math.round(high * 1.35);
-  }
-  if (extras.includes('Trimming & edging')) {
-    low += 8;
-    high += 12;
-  }
-  if (extras.includes('Leaf or debris cleanup')) {
-    low += 15;
-    high += 25;
-  }
-
-  return { low, high };
-}
-
-const bookingForm = document.querySelector('#booking-form');
-const requestResult = document.querySelector('#request-result');
-let requestText = '';
-
-function formatDate(value) {
-  return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(`${value}T12:00:00`));
-}
-
-bookingForm?.addEventListener('submit', (event) => {
-  event.preventDefault();
-  const data = new FormData(bookingForm);
-  const sqft = Number(data.get('sqft'));
-  const service = data.get('service');
-  const terrain = data.get('terrain');
-  const extras = [data.get('trim') ? 'Trimming & edging' : '', data.get('cleanup') ? 'Leaf or debris cleanup' : ''].filter(Boolean);
-  const date = data.get('date');
-  const time = data.get('time');
-  const price = document.querySelector('.result-price');
-  const copy = document.querySelector('#result-copy');
-  const details = document.querySelector('#result-details');
-
-  const range = planningRange(sqft, terrain, extras);
-  price.textContent = `$${range.low}–$${range.high}`;
-  copy.textContent = service !== 'one-time'
-    ? 'This is a one-time visit planning range. Ongoing-service pricing is confirmed separately after availability is reviewed.'
-    : terrain === 'flat' && !extras.length
-      ? 'Typical per-visit planning range for routine mowing. It is based on exact lawn size, not a broad yard category, and is not a final quote or confirmed appointment.'
-      : 'This bounded planning range includes the slope and services you selected. We’ll confirm the work and a clear per-visit quote before reserving a visit.';
-
-  details.innerHTML = [
-    `${sqft.toLocaleString()} sq ft`,
-    service === 'one-time' ? 'One-time visit' : service === 'weekly' ? 'Asked about weekly care' : 'Asked about every-other-week care',
-    terrain === 'flat' ? 'Mostly flat' : terrain === 'mixed' ? 'Some slope' : 'Steep / uneven',
-    `Requested: ${formatDate(date)}, ${time}`,
-    ...extras,
-  ].map((item) => `<span>${item}</span>`).join('');
-
-  requestText = `C.R. Caretaker visit request\nService: ${service === 'one-time' ? 'one-time mowing' : service === 'weekly' ? 'ask about weekly care' : 'ask about every-other-week care'}\nLawn: ${sqft.toLocaleString()} sq ft\nTerrain: ${terrain}\nPreferred time: ${formatDate(date)}, ${time}${extras.length ? `\nExtras: ${extras.join(', ')}` : ''}`;
-  requestResult.hidden = false;
-  requestResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-});
-
-document.querySelector('.result-close')?.addEventListener('click', () => { requestResult.hidden = true; });
-
-document.querySelector('.copy-estimate')?.addEventListener('click', async () => {
-  const status = document.querySelector('.copy-status');
-  try {
-    await navigator.clipboard.writeText(requestText);
-    status.textContent = 'Request details copied. Paste them into a text or email so we can confirm availability.';
-  } catch {
-    status.textContent = 'Copy is unavailable here. Select the request details above and copy them manually.';
-  }
-});
-
-document.querySelector('.copy-contact')?.addEventListener('click', async () => {
-  const status = document.querySelector('.contact-copy-status');
-  try {
-    await navigator.clipboard.writeText('C.R. Caretaker\nCall or text: 970 846 0980\nAlternate call: 970 457 0542\nEmail: Crcaretaker@gmail.com');
-    status.textContent = 'Contact details copied.';
-  } catch {
-    status.textContent = 'Copy is unavailable here. Please select the contact details above.';
-  }
-});
+const BUSINESS={phone:'9708460980',email:'Crcaretaker@gmail.com'};
+const toggle=document.querySelector('.menu-toggle'),nav=document.querySelector('#site-navigation');
+const closeMenu=(focus=false)=>{toggle?.setAttribute('aria-expanded','false');toggle?.setAttribute('aria-label','Open menu');nav?.classList.remove('mobile-open');if(focus)toggle?.focus()};
+toggle?.addEventListener('click',()=>{if(toggle.getAttribute('aria-expanded')==='true')return closeMenu(true);toggle.setAttribute('aria-expanded','true');toggle.setAttribute('aria-label','Close menu');nav?.classList.add('mobile-open')});nav?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>closeMenu()));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&toggle?.getAttribute('aria-expanded')==='true')closeMenu(true)});
+const photoInput=document.querySelector('#yard-photos'),photoPreview=document.querySelector('#photo-preview');photoInput?.addEventListener('change',()=>{photoPreview.innerHTML='';[...photoInput.files].slice(0,4).forEach(file=>{const img=document.createElement('img');img.alt=`Selected yard photo: ${file.name}`;img.src=URL.createObjectURL(file);photoPreview.append(img)})});
+const preferredDate=document.querySelector('#preferred-date');if(preferredDate){const d=new Date();d.setDate(d.getDate()+1);const value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;preferredDate.min=value;preferredDate.value=value}
+// Owner-editable planning assumptions; not a published rate card or final quote.
+const ESTIMATE_CONFIG={minimum:35,base:30,lowRate:.007,highBase:42,highRate:.0085,trim:[8,12],cleanup:[15,25],mixed:[1.1,1.18],steep:[1.2,1.35]};
+function planningRange(sqft,terrain,extras){let low=Math.max(ESTIMATE_CONFIG.minimum,Math.round(ESTIMATE_CONFIG.base+sqft*ESTIMATE_CONFIG.lowRate)),high=Math.max(low+10,Math.round(ESTIMATE_CONFIG.highBase+sqft*ESTIMATE_CONFIG.highRate));const f=terrain==='mixed'?ESTIMATE_CONFIG.mixed:terrain==='steep'?ESTIMATE_CONFIG.steep:null;if(f){low=Math.round(low*f[0]);high=Math.round(high*f[1])}if(extras.includes('Trimming & edging')){low+=8;high+=12}if(extras.includes('Leaf or debris cleanup')){low+=15;high+=25}return{low,high}}
+const formatDate=value=>new Intl.DateTimeFormat('en-US',{weekday:'long',month:'long',day:'numeric'}).format(new Date(`${value}T12:00:00`));
+const bookingForm=document.querySelector('#booking-form'),requestResult=document.querySelector('#request-result');let requestText='';
+if(requestResult){requestResult.setAttribute('aria-live','polite');const title=document.createElement('h3');title.className='result-title';title.tabIndex=-1;title.textContent='Your request is ready';requestResult.querySelector('.result-top')?.after(title)}
+function addHandoff(){const actions=document.querySelector('.result-actions');if(!actions||actions.querySelector('.handoff-action'))return;[['Text this request','handoff-action',()=>`sms:+1${BUSINESS.phone}?body=${encodeURIComponent(requestText)}`],['Email this request','handoff-action handoff-email',()=>`mailto:${BUSINESS.email}?subject=${encodeURIComponent('C.R. Caretaker visit request')}&body=${encodeURIComponent(requestText)}`]].reverse().forEach(([label,cls,url])=>{const a=document.createElement('a');a.className=cls;a.textContent=label;a.href=url();a.addEventListener('click',()=>a.href=url());actions.prepend(a)})}
+bookingForm?.addEventListener('submit',e=>{e.preventDefault();document.querySelector('.form-error')?.remove();const data=new FormData(bookingForm),sqft=Number(data.get('sqft'));if(!Number.isFinite(sqft)||sqft<250||sqft>100000){const error=document.createElement('p');error.className='form-error';error.textContent='Enter the mowable grass area between 250 and 100,000 square feet. If you do not know it, text a photo and request a manual review.';bookingForm.prepend(error);bookingForm.querySelector('[name="sqft"]')?.focus();return}const service=data.get('service'),terrain=data.get('terrain'),extras=[data.get('trim')?'Trimming & edging':'',data.get('cleanup')?'Leaf or debris cleanup':''].filter(Boolean),date=data.get('date'),time=data.get('time'),range=planningRange(sqft,terrain,extras);document.querySelector('.result-price').textContent=`$${range.low}–$${range.high}`;document.querySelector('#result-copy').textContent=service!=='one-time'?'This is a one-time visit planning range. Ongoing-service pricing is confirmed separately after availability is reviewed.':'Planning range only. Grass height, access, gates, obstacles, slope, cleanup, and final scope can change the quote.';document.querySelector('#result-details').innerHTML=[`${sqft.toLocaleString()} sq ft`,service==='one-time'?'One-time visit':service==='weekly'?'Asked about weekly care':'Asked about every-other-week care',terrain==='flat'?'Mostly flat':terrain==='mixed'?'Some slope':'Steep / uneven',`Requested: ${formatDate(date)}, ${time}`,...extras].map(x=>`<span>${x}</span>`).join('');requestText=`C.R. Caretaker visit request\nService: ${service}\nLawn: ${sqft.toLocaleString()} sq ft\nTerrain: ${terrain}\nPreferred time: ${formatDate(date)}, ${time}${extras.length?`\nExtras: ${extras.join(', ')}`:''}\n\nThis is a request, not a confirmed booking.`;requestResult.hidden=false;addHandoff();requestResult.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'nearest'});requestResult.querySelector('.result-title')?.focus()});
+document.querySelector('.result-close')?.addEventListener('click',()=>requestResult.hidden=true);document.querySelector('.copy-estimate')?.addEventListener('click',async()=>{const s=document.querySelector('.copy-status');try{await navigator.clipboard.writeText(requestText);s.textContent='Request copied. You can also text or email it using the buttons above.'}catch{s.textContent='Copy is unavailable here. Use Text this request or Email this request.'}});
+document.querySelector('.copy-contact')?.addEventListener('click',async()=>{const s=document.querySelector('.contact-copy-status');try{await navigator.clipboard.writeText(`C.R. Caretaker\nCall or text: 970 846 0980\nEmail: ${BUSINESS.email}`);s.textContent='Contact details copied.'}catch{s.textContent='Copy is unavailable here. Use the contact links.'}});document.querySelectorAll('.desktop-contact-values span').forEach(item=>{const strong=item.querySelector('strong');if(!strong)return;const raw=strong.textContent.trim(),a=document.createElement('a');a.href=raw.includes('@')?`mailto:${raw}`:`tel:+1${raw.replace(/\D/g,'')}`;a.textContent=raw;strong.replaceWith(a)});
