@@ -27,7 +27,7 @@ All phone numbers and contact details are placeholders from the project brief an
 
 ## Booking and planning guide
 
-The planning guide uses exact lawn square footage and a continuous calculation; update `planningRange()` in `script.js` once the owner finalizes pricing. Customers must click a specific date in the full calendar and select an arrival window.
+The planning guide uses exact lawn square footage and a continuous calculation; update `planningRange()` in `script.js` once the owner finalizes pricing. Customers select a specific date, then an open start time. The current 8:00 AM, 11:00 AM, and 2:00 PM starts are intentionally three hours apart for mowing and local travel.
 
 To mark a date fully booked, add it to `UNAVAILABLE_DATES` near the top of `script.js` in `YYYY-MM-DD` format, for example:
 
@@ -36,5 +36,15 @@ const UNAVAILABLE_DATES = new Set(["2026-09-22", "2026-09-25"]);
 ```
 
 Publish the change and those dates will appear unavailable and cannot be selected. This static calendar does not automatically reserve or synchronize dates across visitors. Every selection remains a request until the owner confirms it. For automatic shared availability and reservations, connect a booking backend or calendar service later.
+
+To block a particular start time while keeping other times open that day, add it to `UNAVAILABLE_STARTS` near the top of `script.js`, for example:
+
+```js
+const UNAVAILABLE_STARTS = new Map([
+  ["2026-09-23", new Set(["11:00 AM"])]
+]);
+```
+
+Publish the change after the owner adds a confirmed booking. The compact picker will label that start time unavailable, and the full calendar will show the date as limited rather than fully booked.
 
 Photo selection is local preview only. The current static site does not upload photos or use AI image analysis. A secure form endpoint and an AI/API service would be required before claiming automated photo-based size or slope analysis.

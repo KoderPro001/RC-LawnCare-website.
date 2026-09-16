@@ -493,7 +493,7 @@ function answerAssistant() {
   } else if (/cleanup|leaf|leaves|twig|weed/.test(question)) {
     answer = "Optional cleanup means a short-grass trim plus removal of leaves, twigs, and weeds. Because debris volume varies, the final cleanup price is confirmed after photos or an on-site look.";
   } else if (/schedule|date|time|book|available/.test(question)) {
-    answer = "Choose a specific available day from the calendar and an arrival window. Fully booked days cannot be selected. Your choice is still a request until C.R. Caretaker confirms it directly.";
+    answer = "Choose a specific day, then one open start time. The 8:00 AM, 11:00 AM, and 2:00 PM options are intentionally three hours apart for mowing and local travel. Fully booked days and occupied starts cannot be selected. Your choice is still a request until C.R. Caretaker confirms it directly.";
   } else if (/pay|payment|cash|card|invoice/.test(question)) {
     answer = "Payment details are confirmed directly with the owner before work begins. The website does not collect payment or card information.";
   } else if (/access|gate|fence|dog|pet|lock/.test(question)) {
