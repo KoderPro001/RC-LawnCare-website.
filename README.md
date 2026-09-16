@@ -1,4 +1,4 @@
-# C.R. Caretaker website
+# R&C Lawncare website
 
 Static, mobile-first website for a Steamboat Springs lawn mowing business with optional trimming, edging, and light yard cleanup. It can be published on Vercel, Netlify, Cloudflare Pages, GitHub Pages, or any static host.
 
