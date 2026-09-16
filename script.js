@@ -302,6 +302,8 @@ function answerAssistant() {
     answer = "Photos help the owner review visible slope, gates, obstacles, edging, and grass condition. They stay on your device until you attach them to a text or email. A single photo cannot reliably measure square footage.";
   } else if (/slope|steep|hill|terrain/.test(question)) {
     answer = "Some slope adds about 15% to the planning calculation; steep or uneven terrain adds about 25% because it usually slows mowing and may require smaller equipment. The owner confirms the real adjustment after review.";
+  } else if (/shape|irregular|triangle|circle|section|rectangle/.test(question)) {
+    answer = "For an irregular lawn, divide it into a few simple rectangles, calculate each length × width, and add the areas together. The result only needs to be close enough for a planning range.";
   } else if (/square|size|feet|measure|area/.test(question)) {
     answer = "Use mowable grass area only. Exclude the house, driveway, deck, and large beds. If you do not know the square feet, choose Help me calculate it and enter approximate lawn length and width.";
   } else if (/include|mow|edge|trim/.test(question)) {
@@ -314,8 +316,6 @@ function answerAssistant() {
     answer = "Payment details are confirmed directly with the owner before work begins. The website does not collect payment or card information.";
   } else if (/access|gate|fence|dog|pet|lock/.test(question)) {
     answer = "Include gate width, locks, pets, fences, and hard-to-reach sections in your message or photos. Access can change the equipment needed and the final quote.";
-  } else if (/shape|irregular|triangle|circle|section|rectangle/.test(question)) {
-    answer = "For an irregular lawn, divide it into a few simple rectangles, calculate each length × width, and add the areas together. The result only needs to be close enough for a planning range.";
   } else if (/why|price|cost|expensive|range|accurate|quote/.test(question)) {
     answer = lastEstimate
       ? `Your $${lastEstimate.low}–$${lastEstimate.high} range is based on ${lastEstimate.sqft.toLocaleString()} sq ft plus frequency, terrain, obstacles, grass condition, and selected extras. It stays a range until the property is reviewed.`
