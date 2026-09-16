@@ -94,7 +94,8 @@ photoInput?.addEventListener("change", () => {
   photoUrls = [];
   if (!photoPreview) return;
   photoPreview.innerHTML = "";
-  const files = Array.from(photoInput.files || []).slice(0, 6);
+  const allFiles = Array.from(photoInput.files || []);
+  const files = allFiles.slice(0, 6);
   files.forEach((file) => {
     const image = document.createElement("img");
     const url = URL.createObjectURL(file);
@@ -105,7 +106,7 @@ photoInput?.addEventListener("change", () => {
   });
   const note = document.createElement("small");
   note.textContent = files.length
-    ? `${files.length} photo${files.length === 1 ? "" : "s"} selected for preview. Attach them manually when your message opens.`
+    ? `${files.length} photo${files.length === 1 ? "" : "s"} selected for preview.${allFiles.length > 6 ? ` ${allFiles.length - 6} extra photo${allFiles.length - 6 === 1 ? " was" : "s were"} not previewed.` : ""} Attach the photos manually when your message opens.`
     : "No photos selected.";
   photoPreview.appendChild(note);
 });
@@ -127,14 +128,14 @@ function baseMowingPrice(sqft) {
 
 function planningRange({ sqft, service, terrain, obstacles, condition, trim, cleanup }) {
   const frequencyFactor = { "one-time": 1.05, weekly: 0.9, biweekly: 0.97 }[service] || 1;
-  const terrainFactor = { flat: 1, mixed: 1.12, steep: 1.25 }[terrain] || 1;
+  const terrainFactor = { flat: 1, mixed: 1.15, steep: 1.25 }[terrain] || 1;
   const obstacleFactor = { few: 1, some: 1.08, many: 1.16 }[obstacles] || 1;
   const conditionFactor = { maintained: 1, tall: 1.15, overgrown: 1.35 }[condition] || 1;
   let midpoint = baseMowingPrice(sqft) * frequencyFactor * terrainFactor * obstacleFactor * conditionFactor;
   if (trim) midpoint += 8 + Math.min(10, sqft * 0.0007);
   if (cleanup) midpoint += 18 + Math.min(38, sqft * 0.0015);
   const low = Math.max(32, Math.round(midpoint * 0.9));
-  const high = Math.max(low + 8, Math.round(midpoint * 1.1));
+  const high = Math.max(low + 5, Math.round(midpoint * 1.1));
   return { low, high, midpoint: Math.round(midpoint) };
 }
 
@@ -165,6 +166,11 @@ function updateHandoffLinks() {
   const subject = "C.R. Caretaker quote request";
   const email = $("#email-request");
   const gmail = $("#gmail-request");
+  const textLink = $("#text-request");
+  if (textLink) {
+    const separator = /iPad|iPhone|iPod/.test(navigator.userAgent) ? "&" : "?";
+    textLink.href = `sms:+1${BUSINESS.phone}${separator}body=${encodeURIComponent(requestText)}`;
+  }
   if (email) {
     email.href = `mailto:${BUSINESS.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(requestText)}`;
   }
@@ -295,7 +301,7 @@ function answerAssistant() {
   if (/photo|image|picture|camera/.test(question)) {
     answer = "Photos help the owner review visible slope, gates, obstacles, edging, and grass condition. They stay on your device until you attach them to a text or email. A single photo cannot reliably measure square footage.";
   } else if (/slope|steep|hill|terrain/.test(question)) {
-    answer = "Some slope adds about 12% to the planning calculation; steep or uneven terrain adds about 25% because it usually slows mowing and may require smaller equipment. The owner confirms the real adjustment after review.";
+    answer = "Some slope adds about 15% to the planning calculation; steep or uneven terrain adds about 25% because it usually slows mowing and may require smaller equipment. The owner confirms the real adjustment after review.";
   } else if (/square|size|feet|measure|area/.test(question)) {
     answer = "Use mowable grass area only. Exclude the house, driveway, deck, and large beds. If you do not know the square feet, choose Help me calculate it and enter approximate lawn length and width.";
   } else if (/include|mow|edge|trim/.test(question)) {
@@ -304,6 +310,12 @@ function answerAssistant() {
     answer = "Optional cleanup means a short-grass trim plus removal of leaves, twigs, and weeds. Because debris volume varies, the final cleanup price is confirmed after photos or an on-site look.";
   } else if (/schedule|date|time|book|available/.test(question)) {
     answer = "The date and arrival window are preferences, not an instant reservation. C.R. Caretaker confirms availability directly so two customers are not promised the same time.";
+  } else if (/pay|payment|cash|card|invoice/.test(question)) {
+    answer = "Payment details are confirmed directly with the owner before work begins. The website does not collect payment or card information.";
+  } else if (/access|gate|fence|dog|pet|lock/.test(question)) {
+    answer = "Include gate width, locks, pets, fences, and hard-to-reach sections in your message or photos. Access can change the equipment needed and the final quote.";
+  } else if (/shape|irregular|triangle|circle|section|rectangle/.test(question)) {
+    answer = "For an irregular lawn, divide it into a few simple rectangles, calculate each length × width, and add the areas together. The result only needs to be close enough for a planning range.";
   } else if (/why|price|cost|expensive|range|accurate|quote/.test(question)) {
     answer = lastEstimate
       ? `Your $${lastEstimate.low}–$${lastEstimate.high} range is based on ${lastEstimate.sqft.toLocaleString()} sq ft plus frequency, terrain, obstacles, grass condition, and selected extras. It stays a range until the property is reviewed.`
