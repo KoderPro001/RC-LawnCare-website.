@@ -153,6 +153,7 @@ function setRequestedDate(key, closeCalendar = false) {
 function setCalendarOpen(open) {
   if (!availabilityCalendar) return;
   availabilityCalendar.hidden = !open;
+  document.body.classList.toggle("calendar-open", open);
   calendarToggle?.setAttribute("aria-expanded", String(open));
   if (calendarToggle) calendarToggle.innerHTML = open ? "Close calendar <span>×</span>" : "Open calendar <span>↗</span>";
   if (open) {
@@ -195,10 +196,11 @@ function renderCalendar() {
     if (isPartiallyBooked) button.classList.add("is-limited");
     const isSelected = preferredDate?.value === key;
     if (isSelected) button.classList.add("is-selected");
-    button.setAttribute("aria-pressed", String(isSelected));
+    if (isSelected) button.setAttribute("aria-current", "date");
+    else button.removeAttribute("aria-current");
     button.disabled = isPast || isTooFar || isBooked;
     const spokenDate = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(date);
-    button.setAttribute("aria-label", `${spokenDate}${isBooked ? ", fully booked" : isPartiallyBooked ? ", limited times available" : isPast || isTooFar ? ", unavailable" : ", available to request"}`);
+    button.setAttribute("aria-label", `${spokenDate}${isSelected ? ", selected" : ""}${isBooked ? ", fully booked" : isPartiallyBooked ? ", limited times available" : isPast || isTooFar ? ", unavailable" : ", available to request"}`);
     button.addEventListener("click", () => {
       setRequestedDate(key, true);
     });
