@@ -48,6 +48,20 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && toggle?.getAttribute("aria-expanded") === "true") closeMenu(true);
 });
 
+// Keep the quick picker simple: visitors can use these controls or open the full availability calendar.
+const compactDate = $(".selected-date");
+if (compactDate) {
+  compactDate.innerHTML = '<small>YOUR DATE</small><input id="quick-date" type="date" aria-label="Preferred mowing date" aria-describedby="selected-date-subtitle availability-message"><span id="selected-date-subtitle">Choose here, or open the calendar to browse availability.</span>';
+}
+const oldResultActions = $(".result-actions");
+if (oldResultActions) {
+  oldResultActions.outerHTML = '<div class="request-send"><p class="request-send-kicker">READY FOR A FINAL QUOTE?</p><h3>Send your request in one step.</h3><label for="reply-to">How should we reply?<input form="booking-form" name="reply-to" id="reply-to" type="text" placeholder="Email or phone number"></label><button class="send-request" form="booking-form" type="submit" id="send-request">Send my request <span>→</span></button><p id="request-send-status" class="request-send-status" role="status">By sending, your reply contact, request details, estimate, and preferred time go through FormSubmit to C.R. Caretaker. Photos are not uploaded. A requested time is not held until confirmed.</p><a id="request-fallback" class="request-fallback" href="#contact" hidden>Use another way to reach us</a></div>';
+}
+const photoHelper = $(".photo-helper");
+if (photoHelper) photoHelper.textContent = "Helpful photos show the full lawn, steep areas, gates, obstacles, and overgrowth. Photos stay on this device and are not uploaded with this request.";
+const contactPanel = $(".contact-panel");
+if (contactPanel) contactPanel.innerHTML = '<p><strong>Have a question before you request?</strong><br>Call, text, or email us directly. For a finished planning range, use the Send my request button above.</p><a class="mobile-only-link" href="sms:+19708460980">Text a question <span>↗</span></a>';
+
 // Add owner-confirmed unavailable dates or occupied arrival times here, then publish the site.
 // This static site does not receive live bookings on its own.
 const UNAVAILABLE_DATES = new Set([]);
@@ -69,6 +83,7 @@ const availabilityCalendar = $("#availability-calendar");
 const selectedDateLabel = $("#selected-date-label");
 const selectedDateSubtitle = $("#selected-date-subtitle");
 const availabilityMessage = $("#availability-message");
+const quickDate = $("#quick-date");
 const earliestDate = new Date();
 earliestDate.setHours(0, 0, 0, 0);
 earliestDate.setDate(earliestDate.getDate() + 1);
@@ -136,6 +151,11 @@ function updateStartOptions() {
 function setRequestedDate(key, closeCalendar = false) {
   if (!preferredDate) return;
   preferredDate.value = key;
+  if (quickDate) quickDate.value = key;
+  if (key) {
+    const date = new Date(`${key}T12:00:00`);
+    if (!Number.isNaN(date.valueOf())) calendarCursor = new Date(date.getFullYear(), date.getMonth(), 1);
+  }
   const occupied = UNAVAILABLE_STARTS.get(key) || new Set();
   if (!dateCanBeRequested(key)) {
     setStatus(calendarStatus, "That date is not available. Open the full calendar to see availability.");
@@ -222,6 +242,11 @@ function renderCalendar() {
 calendarToggle?.addEventListener("click", () => setCalendarOpen(Boolean(availabilityCalendar?.hidden)));
 calendarClose?.addEventListener("click", () => setCalendarOpen(false));
 preferredTime?.addEventListener("change", updateScheduleSummary);
+if (quickDate) {
+  quickDate.min = localDateKey(earliestDate);
+  quickDate.max = localDateKey(lastCalendarDate);
+  quickDate.addEventListener("change", () => setRequestedDate(quickDate.value));
+}
 
 calendarPrev?.addEventListener("click", () => {
   calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() - 1, 1);
@@ -334,25 +359,63 @@ function showFormError(message, focusTarget) {
   focusTarget?.focus();
 }
 
-function updateHandoffLinks() {
-  const subject = "C.R. Caretaker quote request";
-  const email = $("#email-request");
-  const gmail = $("#gmail-request");
-  const textLink = $("#text-request");
-  if (textLink) {
-    const separator = /iPad|iPhone|iPod/.test(navigator.userAgent) ? "&" : "?";
-    textLink.href = `sms:+1${BUSINESS.phone}${separator}body=${encodeURIComponent(requestText)}`;
+function replyContactType(value) {
+  const candidate = value.trim();
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidate)) return "email";
+  const digits = candidate.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15 ? "phone" : "";
+}
+
+async function sendQuoteRequest(replyTo) {
+  const status = $("#request-send-status");
+  const button = $("#send-request");
+  const fallback = $("#request-fallback");
+  if (!requestText || !lastEstimate) return;
+  const contactType = replyContactType(replyTo);
+  if (!contactType) {
+    setStatus(status, "Add a valid email address or phone number so we can reply with the final quote.");
+    status?.classList.add("is-error");
+    $("#reply-to")?.focus();
+    return;
   }
-  if (email) {
-    email.href = `mailto:${BUSINESS.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(requestText)}`;
+  status?.classList.remove("is-error");
+  setStatus(status, "Sending your request…");
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Sending request…";
   }
-  if (gmail) {
-    gmail.href = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(BUSINESS.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(requestText)}`;
+  try {
+    const payload = {
+      _subject: "New C.R. Caretaker final-quote request",
+      _template: "table",
+      reply_contact: replyTo.trim(),
+      planning_range: `$${lastEstimate.low}–$${lastEstimate.high} per visit`,
+      request: requestText
+    };
+    if (contactType === "email") payload._replyto = replyTo.trim();
+    const response = await fetch(`https://formsubmit.co/ajax/${BUSINESS.email}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const responseData = await response.json().catch(() => ({}));
+    if (!response.ok || responseData.success === false || responseData.success === "false") throw new Error("Request delivery failed");
+    setStatus(status, "Request received by our form service. C.R. Caretaker will reply with the final quote after review. Your preferred time is not reserved until confirmed.");
+    if (button) button.textContent = "Request received ✓";
+  } catch {
+    setStatus(status, "We could not send that request just now. Try again, or use another way to reach us.");
+    status?.classList.add("is-error");
+    if (fallback) fallback.hidden = false;
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = "Send my request <span>→</span>";
+    }
   }
 }
 
 bookingForm?.addEventListener("submit", (event) => {
   event.preventDefault();
+  const sendingRequest = event.submitter?.id === "send-request" || document.activeElement?.id === "send-request";
   $(".form-error")?.remove();
   const data = new FormData(bookingForm);
   const requestedDate = String(data.get("date") || "");
@@ -432,18 +495,30 @@ bookingForm?.addEventListener("submit", (event) => {
     `Grass condition: ${conditionLabel}`,
     `Preferred time: ${formatDate(data.get("date"))}, ${data.get("time")}`,
     `Extras: ${extras.length ? extras.join(", ") : "None selected"}`,
-    `Photos: ${photoCount ? `${photoCount} selected; I will attach them` : "None selected"}`,
+    `Photos: ${photoCount ? `${photoCount} selected on this device; not uploaded with this request` : "None selected"}`,
     "",
     "This is a planning request, not a confirmed booking or final quote."
   ].join("\n");
 
-  updateHandoffLinks();
   requestResult.hidden = false;
+  const sendStatus = $("#request-send-status");
+  const sendButton = $("#send-request");
+  const requestFallback = $("#request-fallback");
+  if (sendStatus) {
+    sendStatus.classList.remove("is-error");
+    sendStatus.textContent = "By sending, your reply contact, request details, estimate, and preferred time go through FormSubmit to C.R. Caretaker. Photos are not uploaded. A requested time is not held until confirmed.";
+  }
+  if (sendButton) {
+    sendButton.disabled = false;
+    sendButton.innerHTML = "Send my request <span>→</span>";
+  }
+  if (requestFallback) requestFallback.hidden = true;
   requestResult.scrollIntoView({
     behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
     block: "nearest"
   });
   $(".result-title", requestResult)?.focus();
+  if (sendingRequest) sendQuoteRequest(String(data.get("reply-to") || ""));
 });
 
 if (requestResult) {
