@@ -48,14 +48,27 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && toggle?.getAttribute("aria-expanded") === "true") closeMenu(true);
 });
 
-// Add confirmed fully booked dates here using YYYY-MM-DD, then publish the site.
+// Add owner-confirmed unavailable dates or occupied arrival times here, then publish the site.
+// This static site does not receive live bookings on its own.
 const UNAVAILABLE_DATES = new Set([]);
+const UNAVAILABLE_STARTS = new Map([
+  // ["2026-09-17", new Set(["11:00 AM"])]
+]);
+// Three-hour gaps leave room for mowing, loading equipment, and local travel.
+const CANDIDATE_STARTS = ["8:00 AM", "11:00 AM", "2:00 PM"];
 const preferredDate = $("#preferred-date");
+const preferredTime = $("#preferred-time") || $("select[name='time']");
 const calendarDays = $("#calendar-days");
 const calendarMonth = $("#calendar-month");
 const calendarStatus = $("#calendar-status");
 const calendarPrev = $("#calendar-prev");
 const calendarNext = $("#calendar-next");
+const calendarToggle = $("#open-calendar");
+const calendarClose = $("#calendar-close");
+const availabilityCalendar = $("#availability-calendar");
+const selectedDateLabel = $("#selected-date-label");
+const selectedDateSubtitle = $("#selected-date-subtitle");
+const availabilityMessage = $("#availability-message");
 const earliestDate = new Date();
 earliestDate.setHours(0, 0, 0, 0);
 earliestDate.setDate(earliestDate.getDate() + 1);
@@ -68,6 +81,86 @@ function localDateKey(date) {
     String(date.getMonth() + 1).padStart(2, "0"),
     String(date.getDate()).padStart(2, "0")
   ].join("-");
+}
+
+function dateCanBeRequested(key) {
+  if (!key) return false;
+  const date = new Date(`${key}T12:00:00`);
+  return date >= earliestDate && date <= lastCalendarDate && !UNAVAILABLE_DATES.has(key);
+}
+
+function updateScheduleSummary() {
+  const key = preferredDate?.value || "";
+  const occupied = UNAVAILABLE_STARTS.get(key) || new Set();
+  const openStarts = dateCanBeRequested(key) ? CANDIDATE_STARTS.filter((time) => !occupied.has(time)) : [];
+  if (selectedDateLabel) selectedDateLabel.textContent = key ? formatDate(key) : "Choose a day";
+  if (selectedDateSubtitle) selectedDateSubtitle.textContent = key
+    ? openStarts.length ? `${openStarts.length} start time${openStarts.length === 1 ? "" : "s"} open` : "No start times open"
+    : "Select a specific date to see open times.";
+  if (availabilityMessage) availabilityMessage.textContent = key
+    ? openStarts.length ? "Choose one of the open start times. Slots are spaced three hours apart for mowing and travel." : "That day is not available. Open the full calendar to choose another date."
+    : "Open the full calendar to see date availability.";
+}
+
+function updateStartOptions() {
+  if (!preferredTime) return;
+  const selectedDate = preferredDate?.value || "";
+  const occupied = UNAVAILABLE_STARTS.get(selectedDate) || new Set();
+  const previous = preferredTime.value;
+  preferredTime.innerHTML = "";
+  const prompt = document.createElement("option");
+  prompt.value = "";
+  prompt.selected = true;
+  prompt.disabled = true;
+  if (!selectedDate) prompt.textContent = "Choose a date first";
+  else if (!dateCanBeRequested(selectedDate)) prompt.textContent = "Date not available — open calendar";
+  else prompt.textContent = "Choose a specific arrival time";
+  preferredTime.appendChild(prompt);
+  if (!dateCanBeRequested(selectedDate)) {
+    preferredTime.disabled = true;
+    updateScheduleSummary();
+    return;
+  }
+  CANDIDATE_STARTS.forEach((time) => {
+    const option = document.createElement("option");
+    option.value = time;
+    option.textContent = occupied.has(time) ? `${time} — not available` : time;
+    option.disabled = occupied.has(time);
+    preferredTime.appendChild(option);
+  });
+  preferredTime.disabled = CANDIDATE_STARTS.every((time) => occupied.has(time));
+  if (previous && !occupied.has(previous)) preferredTime.value = previous;
+  updateScheduleSummary();
+}
+
+function setRequestedDate(key, closeCalendar = false) {
+  if (!preferredDate) return;
+  preferredDate.value = key;
+  const occupied = UNAVAILABLE_STARTS.get(key) || new Set();
+  if (!dateCanBeRequested(key)) {
+    setStatus(calendarStatus, "That date is not available. Open the full calendar to see availability.");
+  } else if (CANDIDATE_STARTS.every((time) => occupied.has(time))) {
+    setStatus(calendarStatus, "No arrival times are open on that date. Open the full calendar to choose another day.");
+  } else {
+    setStatus(calendarStatus, `Open arrival times for ${formatDate(key)}. Choose one below.`);
+  }
+  updateStartOptions();
+  updateScheduleSummary();
+  renderCalendar();
+  if (closeCalendar) setCalendarOpen(false);
+}
+
+function setCalendarOpen(open) {
+  if (!availabilityCalendar) return;
+  availabilityCalendar.hidden = !open;
+  calendarToggle?.setAttribute("aria-expanded", String(open));
+  if (calendarToggle) calendarToggle.innerHTML = open ? "Close calendar <span>×</span>" : "Open calendar <span>↗</span>";
+  if (open) {
+    renderCalendar();
+    availabilityCalendar.querySelector(".calendar-day:not(:disabled)")?.focus();
+  } else {
+    calendarToggle?.focus();
+  }
 }
 
 function renderCalendar() {
@@ -87,7 +180,9 @@ function renderCalendar() {
     const key = localDateKey(date);
     const isPast = date < earliestDate;
     const isTooFar = date > lastCalendarDate;
-    const isBooked = UNAVAILABLE_DATES.has(key);
+    const occupied = UNAVAILABLE_STARTS.get(key) || new Set();
+    const isBooked = UNAVAILABLE_DATES.has(key) || CANDIDATE_STARTS.every((time) => occupied.has(time));
+    const isPartiallyBooked = !isBooked && occupied.size > 0;
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = String(day);
@@ -97,16 +192,15 @@ function renderCalendar() {
       fullyBookedCount += 1;
       button.classList.add("is-unavailable");
     }
+    if (isPartiallyBooked) button.classList.add("is-limited");
     const isSelected = preferredDate?.value === key;
     if (isSelected) button.classList.add("is-selected");
     button.setAttribute("aria-pressed", String(isSelected));
     button.disabled = isPast || isTooFar || isBooked;
     const spokenDate = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(date);
-    button.setAttribute("aria-label", `${spokenDate}${isBooked ? ", fully booked" : isPast || isTooFar ? ", unavailable" : ", available to request"}`);
+    button.setAttribute("aria-label", `${spokenDate}${isBooked ? ", fully booked" : isPartiallyBooked ? ", limited times available" : isPast || isTooFar ? ", unavailable" : ", available to request"}`);
     button.addEventListener("click", () => {
-      preferredDate.value = key;
-      setStatus(calendarStatus, `Selected: ${formatDate(key)}. Now choose an arrival window.`);
-      renderCalendar();
+      setRequestedDate(key, true);
     });
     calendarDays.appendChild(button);
   }
@@ -122,6 +216,10 @@ function renderCalendar() {
     : "No fully booked dates are currently posted for this month.";
   calendarDays.after(note);
 }
+
+calendarToggle?.addEventListener("click", () => setCalendarOpen(Boolean(availabilityCalendar?.hidden)));
+calendarClose?.addEventListener("click", () => setCalendarOpen(false));
+preferredTime?.addEventListener("change", updateScheduleSummary);
 
 calendarPrev?.addEventListener("click", () => {
   calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() - 1, 1);
@@ -256,9 +354,13 @@ bookingForm?.addEventListener("submit", (event) => {
   $(".form-error")?.remove();
   const data = new FormData(bookingForm);
   const requestedDate = String(data.get("date") || "");
-  if (!requestedDate || UNAVAILABLE_DATES.has(requestedDate)) {
-    showFormError("Choose a specific available date from the calendar before calculating your range.", $(".calendar-day:not(:disabled)"));
-    $("#availability-calendar")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  const requestedTime = String(data.get("time") || "");
+  if (!dateCanBeRequested(requestedDate)) {
+    showFormError("That date is not available. Open the full calendar to choose an open day.", calendarToggle);
+    return;
+  }
+  if (!requestedTime || (UNAVAILABLE_STARTS.get(requestedDate) || new Set()).has(requestedTime)) {
+    showFormError("That arrival time is not available. Choose another time, or open the full calendar to check a different day.", preferredTime);
     return;
   }
   const sqft = getSquareFeet(data);
