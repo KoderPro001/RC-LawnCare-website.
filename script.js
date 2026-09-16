@@ -265,6 +265,48 @@ const dimensionFields = $("#dimension-fields");
 const sqftInput = bookingForm?.elements.sqft;
 const lengthInput = bookingForm?.elements.length;
 const widthInput = bookingForm?.elements.width;
+const photoUpload = $(".photo-upload", bookingForm);
+if (bookingForm && photoUpload) {
+  const addressBlock = document.createElement("div");
+  addressBlock.className = "address-field";
+  addressBlock.innerHTML = '<label for="service-address">Property address <span class="field-optional">Recommended</span><input id="service-address" name="address" type="text" autocomplete="street-address" placeholder="Street address, Steamboat Springs, CO"><small>Used only to review route distance and any possible travel fee. It is sent privately with your request and never shown on the site.</small></label><p id="address-review" class="address-review" role="status">Add the property address for the most accurate route review. Nearby properties have travel included in the normal range.</p>';
+  photoUpload.before(addressBlock);
+}
+const addressInput = bookingForm?.elements.address;
+const addressReview = $("#address-review");
+
+function reviewServiceAddress(value) {
+  const normalized = String(value || "").toLowerCase();
+  const nearby = /steamboat\s+springs|\b80477\b|\b80487\b|\b80488\b/.test(normalized);
+  if (!String(value || "").trim()) {
+    return {
+      nearby: false,
+      short: "Address not provided; route review needed",
+      message: "Add the property address for the most accurate route review. Nearby properties have travel included in the normal range."
+    };
+  }
+  if (nearby) {
+    return {
+      nearby: true,
+      short: "Nearby Steamboat area — travel included",
+      message: "Nearby Steamboat area detected — travel is included in the normal planning range."
+    };
+  }
+  return {
+    nearby: false,
+    short: "Address provided — route review requested",
+    message: "Address noted for route review. No travel fee is added automatically; if the property is meaningfully out of the normal area, we’ll explain any small fee before booking."
+  };
+}
+
+function updateAddressReview() {
+  const review = reviewServiceAddress(addressInput?.value);
+  setStatus(addressReview, review.message);
+  addressReview?.classList.toggle("is-nearby", review.nearby);
+  addressReview?.classList.toggle("is-review", Boolean(addressInput?.value.trim()) && !review.nearby);
+}
+addressInput?.addEventListener("input", updateAddressReview);
+updateAddressReview();
 let requestText = "";
 let lastEstimate = null;
 
@@ -438,8 +480,12 @@ bookingForm?.addEventListener("submit", (event) => {
     return;
   }
 
+  const address = String(data.get("address") || "").trim();
+  const addressReviewState = reviewServiceAddress(address);
   const details = {
     sqft,
+    address,
+    addressReview: addressReviewState,
     service: data.get("service"),
     terrain: data.get("terrain"),
     obstacles: data.get("obstacles"),
@@ -473,13 +519,16 @@ bookingForm?.addEventListener("submit", (event) => {
   const photoCount = Math.min((photoInput?.files || []).length, 6);
 
   $(".result-price").textContent = `$${range.low}–$${range.high}`;
-  $("#result-copy").textContent = "Estimated per visit. The final quote can change after we review access, photos, actual grass area, and the requested scope.";
+  $("#result-copy").textContent = addressReviewState.nearby
+    ? "Estimated per visit with nearby travel included. The final quote can change after we review access, photos, actual grass area, and the requested scope."
+    : "Estimated per visit. We’ll review the property address and confirm any route adjustment before booking. The final quote can change after we review access, photos, actual grass area, and the requested scope.";
   $("#result-details").innerHTML = [
     `${sqft.toLocaleString()} sq ft`,
     serviceLabel,
     terrainLabel,
     obstacleLabel,
     conditionLabel,
+    addressReviewState.short,
     `Preferred: ${formatDate(data.get("date"))}, ${data.get("time")}`,
     ...extras,
     photoCount ? `${photoCount} photo${photoCount === 1 ? "" : "s"} ready to attach` : "No photos selected"
@@ -488,6 +537,8 @@ bookingForm?.addEventListener("submit", (event) => {
   requestText = [
     "C.R. Caretaker quote request",
     `Planning range: $${range.low}–$${range.high} per visit`,
+    `Property address: ${address || "Not provided; owner should confirm route before quoting"}`,
+    `Travel review: ${addressReviewState.short}`,
     `Service: ${serviceLabel}`,
     `Mowable lawn: ${sqft.toLocaleString()} sq ft`,
     `Terrain: ${terrainLabel}`,

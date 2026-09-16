@@ -54,3 +54,7 @@ Photo selection is local preview only. The current static site does not upload p
 The finished estimate includes a single **Send my request** button. It sends the estimate details and the visitor's chosen reply contact to `Crcaretaker@gmail.com` through FormSubmit's AJAX endpoint, without opening the visitor's email or text app. The page confirms that the request was received by the form service, but it does not claim the appointment is reserved or the owner has sent the final quote. Photos are not uploaded by this flow.
 
 Before live requests can arrive, FormSubmit will email `Crcaretaker@gmail.com` an activation link on the first submission. Open that email and activate the address once. After activation, submit a genuine test request and confirm that it arrives and that replying works. The public endpoint is intentionally configured with the same business email already shown on the site; replace it in `script.js` if the business email changes.
+
+## Property address and travel review
+
+The booking form includes an optional property-address field so the owner can review route distance with the quote request. Addresses that clearly identify the nearby Steamboat Springs area show that travel is included in the normal planning range. Other addresses are flagged for route review without adding an invented fee automatically; if a property is meaningfully out of the normal area, the owner confirms any small travel fee before booking. The static page does not geocode addresses or promise an exact mileage-based fee.
