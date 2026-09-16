@@ -48,18 +48,90 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && toggle?.getAttribute("aria-expanded") === "true") closeMenu(true);
 });
 
+// Add confirmed fully booked dates here using YYYY-MM-DD, then publish the site.
+const UNAVAILABLE_DATES = new Set([]);
 const preferredDate = $("#preferred-date");
-if (preferredDate) {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const localDate = [
-    tomorrow.getFullYear(),
-    String(tomorrow.getMonth() + 1).padStart(2, "0"),
-    String(tomorrow.getDate()).padStart(2, "0")
+const calendarDays = $("#calendar-days");
+const calendarMonth = $("#calendar-month");
+const calendarStatus = $("#calendar-status");
+const calendarPrev = $("#calendar-prev");
+const calendarNext = $("#calendar-next");
+const earliestDate = new Date();
+earliestDate.setHours(0, 0, 0, 0);
+earliestDate.setDate(earliestDate.getDate() + 1);
+const lastCalendarDate = new Date(earliestDate.getFullYear(), earliestDate.getMonth() + 6, 0);
+let calendarCursor = new Date(earliestDate.getFullYear(), earliestDate.getMonth(), 1);
+
+function localDateKey(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0")
   ].join("-");
-  preferredDate.min = localDate;
-  preferredDate.value = localDate;
 }
+
+function renderCalendar() {
+  if (!calendarDays || !calendarMonth) return;
+  calendarDays.innerHTML = "";
+  calendarMonth.textContent = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(calendarCursor);
+  const firstDay = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), 1);
+  const finalDay = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 0);
+  for (let blank = 0; blank < firstDay.getDay(); blank += 1) {
+    const spacer = document.createElement("span");
+    spacer.className = "calendar-spacer";
+    calendarDays.appendChild(spacer);
+  }
+  let fullyBookedCount = 0;
+  for (let day = 1; day <= finalDay.getDate(); day += 1) {
+    const date = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), day);
+    const key = localDateKey(date);
+    const isPast = date < earliestDate;
+    const isTooFar = date > lastCalendarDate;
+    const isBooked = UNAVAILABLE_DATES.has(key);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = String(day);
+    button.dataset.date = key;
+    button.className = "calendar-day";
+    if (isBooked) {
+      fullyBookedCount += 1;
+      button.classList.add("is-unavailable");
+    }
+    const isSelected = preferredDate?.value === key;
+    if (isSelected) button.classList.add("is-selected");
+    button.setAttribute("aria-pressed", String(isSelected));
+    button.disabled = isPast || isTooFar || isBooked;
+    const spokenDate = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(date);
+    button.setAttribute("aria-label", `${spokenDate}${isBooked ? ", fully booked" : isPast || isTooFar ? ", unavailable" : ", available to request"}`);
+    button.addEventListener("click", () => {
+      preferredDate.value = key;
+      setStatus(calendarStatus, `Selected: ${formatDate(key)}. Now choose an arrival window.`);
+      renderCalendar();
+    });
+    calendarDays.appendChild(button);
+  }
+  const firstAllowedMonth = new Date(earliestDate.getFullYear(), earliestDate.getMonth(), 1);
+  const lastAllowedMonth = new Date(lastCalendarDate.getFullYear(), lastCalendarDate.getMonth(), 1);
+  if (calendarPrev) calendarPrev.disabled = calendarCursor <= firstAllowedMonth;
+  if (calendarNext) calendarNext.disabled = calendarCursor >= lastAllowedMonth;
+  $(".calendar-availability-note")?.remove();
+  const note = document.createElement("p");
+  note.className = "calendar-availability-note";
+  note.textContent = fullyBookedCount
+    ? `${fullyBookedCount} fully booked date${fullyBookedCount === 1 ? " is" : "s are"} marked this month.`
+    : "No fully booked dates are currently posted for this month.";
+  calendarDays.after(note);
+}
+
+calendarPrev?.addEventListener("click", () => {
+  calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() - 1, 1);
+  renderCalendar();
+});
+calendarNext?.addEventListener("click", () => {
+  calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 1);
+  renderCalendar();
+});
+renderCalendar();
 
 const bookingForm = $("#booking-form");
 const requestResult = $("#request-result");
@@ -183,6 +255,12 @@ bookingForm?.addEventListener("submit", (event) => {
   event.preventDefault();
   $(".form-error")?.remove();
   const data = new FormData(bookingForm);
+  const requestedDate = String(data.get("date") || "");
+  if (!requestedDate || UNAVAILABLE_DATES.has(requestedDate)) {
+    showFormError("Choose a specific available date from the calendar before calculating your range.", $(".calendar-day:not(:disabled)"));
+    $("#availability-calendar")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
   const sqft = getSquareFeet(data);
   if (!Number.isFinite(sqft) || sqft < 250 || sqft > 100000) {
     const useDimensions = data.get("size-method") === "dimensions";
@@ -304,6 +382,8 @@ function answerAssistant() {
     answer = "Some slope adds about 15% to the planning calculation; steep or uneven terrain adds about 25% because it usually slows mowing and may require smaller equipment. The owner confirms the real adjustment after review.";
   } else if (/shape|irregular|triangle|circle|section|rectangle/.test(question)) {
     answer = "For an irregular lawn, divide it into a few simple rectangles, calculate each length × width, and add the areas together. The result only needs to be close enough for a planning range.";
+  } else if (/travel|far|distance|outside|town|steamboat|service area|location/.test(question)) {
+    answer = "C.R. Caretaker provides mowing in and near Steamboat Springs. A property farther from town is considered only when the schedule allows and may have a small travel fee, which is disclosed before booking.";
   } else if (/square|size|feet|measure|area/.test(question)) {
     answer = "Use mowable grass area only. Exclude the house, driveway, deck, and large beds. If you do not know the square feet, choose Help me calculate it and enter approximate lawn length and width.";
   } else if (/include|mow|edge|trim/.test(question)) {
@@ -311,7 +391,7 @@ function answerAssistant() {
   } else if (/cleanup|leaf|leaves|twig|weed/.test(question)) {
     answer = "Optional cleanup means a short-grass trim plus removal of leaves, twigs, and weeds. Because debris volume varies, the final cleanup price is confirmed after photos or an on-site look.";
   } else if (/schedule|date|time|book|available/.test(question)) {
-    answer = "The date and arrival window are preferences, not an instant reservation. C.R. Caretaker confirms availability directly so two customers are not promised the same time.";
+    answer = "Choose a specific available day from the calendar and an arrival window. Fully booked days cannot be selected. Your choice is still a request until C.R. Caretaker confirms it directly.";
   } else if (/pay|payment|cash|card|invoice/.test(question)) {
     answer = "Payment details are confirmed directly with the owner before work begins. The website does not collect payment or card information.";
   } else if (/access|gate|fence|dog|pet|lock/.test(question)) {

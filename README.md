@@ -1,6 +1,6 @@
 # C.R. Caretaker website
 
-Static, mobile-first website for a Steamboat Springs lawn mowing and property cleanup business. It can be published on Vercel, Netlify, Cloudflare Pages, GitHub Pages, or any static host.
+Static, mobile-first website for a Steamboat Springs lawn mowing business with optional trimming, edging, and light yard cleanup. It can be published on Vercel, Netlify, Cloudflare Pages, GitHub Pages, or any static host.
 
 ## Customize
 
@@ -27,6 +27,14 @@ All phone numbers and contact details are placeholders from the project brief an
 
 ## Booking and planning guide
 
-The planning guide uses exact lawn square footage and a continuous calculation; update `planningRange()` near the top of `script.js` once the owner finalizes pricing. The date and arrival-window fields collect a preferred visit time only. To prevent double booking across all visitors, connect a shared booking calendar such as Google Calendar Appointment Schedules, Calendly, or a similar service and replace the confirmation workflow.
+The planning guide uses exact lawn square footage and a continuous calculation; update `planningRange()` in `script.js` once the owner finalizes pricing. Customers must click a specific date in the full calendar and select an arrival window.
+
+To mark a date fully booked, add it to `UNAVAILABLE_DATES` near the top of `script.js` in `YYYY-MM-DD` format, for example:
+
+```js
+const UNAVAILABLE_DATES = new Set(["2026-09-22", "2026-09-25"]);
+```
+
+Publish the change and those dates will appear unavailable and cannot be selected. This static calendar does not automatically reserve or synchronize dates across visitors. Every selection remains a request until the owner confirms it. For automatic shared availability and reservations, connect a booking backend or calendar service later.
 
 Photo selection is local preview only. The current static site does not upload photos or use AI image analysis. A secure form endpoint and an AI/API service would be required before claiming automated photo-based size or slope analysis.
