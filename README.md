@@ -6,7 +6,7 @@ Static, mobile-first website for a Steamboat Springs lawn mowing business with o
 
 - Replace the business name in `index.html`.
 - Update the phone/text links and visible numbers in `index.html`.
-- Update `the active business reply email` if the owner uses a different email.
+- Change the configured business mailbox only after a replacement address is active; update both `index.html` and `script.js`.
 - The current public site is https://koderpro001.github.io/RC-LawnCare-website./
 - If you connect a custom domain later, update the canonical URL, JSON-LD, `robots.txt`, and `sitemap.xml` together.
 - Replace `hero-steamboat.png` with an approved local photo if desired. Keep the filename or update the image references.
@@ -18,7 +18,7 @@ Open `index.html` directly for a quick check, or use any static server. No build
 
 ## Deploy
 
-Upload this folder to a static host. The included `mailto:` form works without backend configuration by opening the visitor’s email app; connect it to Formspree or Netlify Forms later if a hosted form is preferred.
+Upload this folder to a static host. Quote requests are sent through the FormSubmit AJAX endpoint configured in `script.js`; verify the receiving mailbox and complete FormSubmit’s first-use activation before relying on live requests.
 
 ## Google discovery
 
@@ -52,9 +52,9 @@ Photo selection is local preview only. The current static site does not upload p
 
 ## Final-quote request delivery
 
-The finished estimate includes a single **Send my request** button. It sends the estimate details and the visitor's chosen reply contact to `the active business reply email` through FormSubmit's AJAX endpoint, without opening the visitor's email or text app. The page confirms that the request was received by the form service, but it does not claim the appointment is reserved or the owner has sent the final quote. Photos are not uploaded by this flow.
+The finished estimate includes a single **Send my request** button. It sends the estimate details and the visitor's chosen reply contact to the configured business mailbox through FormSubmit's AJAX endpoint, without opening the visitor's email or text app. The page confirms that the request was received by the form service, but it does not claim the appointment is reserved or the owner has sent the final quote. Photos are not uploaded by this flow.
 
-Before live requests can arrive, FormSubmit will email `the active business reply email` an activation link on the first submission. Open that email and activate the address once. After activation, submit a genuine test request and confirm that it arrives and that replying works. The public endpoint is intentionally configured with the same business email already shown on the site; replace it in `script.js` if the business email changes.
+Before live requests can arrive, FormSubmit will email the configured business mailbox an activation link on the first submission. Open that email and activate the address once. After activation, submit a genuine test request and confirm that it arrives and that replying works. The public endpoint and visible contact details use the same configured mailbox in `index.html` and `script.js`; change both only after the replacement mailbox is active.
 
 ## Property address and travel review
 
