@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://koderpro001.github.io/cr-caretaker-website/sitemap.xml
+Sitemap: https://koderpro001.github.io/RC-LawnCare-website./sitemap.xml
