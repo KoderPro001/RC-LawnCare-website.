@@ -55,7 +55,7 @@ if (compactDate) {
 }
 const oldResultActions = $(".result-actions");
 if (oldResultActions) {
-  oldResultActions.outerHTML = '<div class="request-send"><p class="request-send-kicker">READY FOR A FINAL QUOTE?</p><h3>Send your request in one step.</h3><label for="reply-to">How should we reply?<input form="booking-form" name="reply-to" id="reply-to" type="text" placeholder="Email or phone number"></label><button class="send-request" form="booking-form" type="submit" id="send-request">Send my request <span>→</span></button><p id="request-send-status" class="request-send-status" role="status">By sending, your reply contact, request details, estimate, and preferred time go through FormSubmit to R&C Lawncare. Photos are not uploaded. A requested time is not held until confirmed.</p><a id="request-fallback" class="request-fallback" href="#contact" hidden>Use another way to reach us</a></div>';
+  oldResultActions.outerHTML = '<div class="request-send"><p class="request-send-kicker">READY FOR A FINAL QUOTE?</p><h3>Send your request in one step.</h3><label for="reply-to">How should we reply?<input form="booking-form" name="reply-to" id="reply-to" type="text" placeholder="Email or phone number"></label><button class="send-request" form="booking-form" type="submit" id="send-request">Send my request <span>→</span></button><p id="request-send-status" class="request-send-status" role="status">By sending, your reply contact, request details, estimate, and preferred time go through FormSubmit to R&C LawnCare. Photos are not uploaded. A requested time is not held until confirmed.</p><a id="request-fallback" class="request-fallback" href="#contact" hidden>Use another way to reach us</a></div>';
 }
 const photoHelper = $(".photo-helper");
 if (photoHelper) photoHelper.textContent = "Helpful photos show the full lawn, steep areas, gates, obstacles, and overgrowth. Photos stay on this device and are not uploaded with this request.";
@@ -428,7 +428,7 @@ async function sendQuoteRequest(replyTo) {
   }
   try {
     const payload = {
-      _subject: "New R&C Lawncare final-quote request",
+      _subject: "New R&C LawnCare final-quote request",
       _template: "table",
       reply_contact: replyTo.trim(),
       planning_range: `$${lastEstimate.low}–$${lastEstimate.high} per visit`,
@@ -442,7 +442,7 @@ async function sendQuoteRequest(replyTo) {
     });
     const responseData = await response.json().catch(() => ({}));
     if (!response.ok || responseData.success === false || responseData.success === "false") throw new Error("Request delivery failed");
-    setStatus(status, "Request received by our form service. R&C Lawncare will reply with the final quote after review. Your preferred time is not reserved until confirmed.");
+    setStatus(status, "Request received by our form service. R&C LawnCare will reply with the final quote after review. Your preferred time is not reserved until confirmed.");
     if (button) button.textContent = "Request received ✓";
   } catch {
     setStatus(status, "We could not send that request just now. Try again, or use another way to reach us.");
@@ -535,7 +535,7 @@ bookingForm?.addEventListener("submit", (event) => {
   ].map((item) => `<span>${item}</span>`).join("");
 
   requestText = [
-    "R&C Lawncare quote request",
+    "R&C LawnCare quote request",
     `Planning range: $${range.low}–$${range.high} per visit`,
     `Property address: ${address || "Not provided; owner should confirm route before quoting"}`,
     `Travel review: ${addressReviewState.short}`,
@@ -557,7 +557,7 @@ bookingForm?.addEventListener("submit", (event) => {
   const requestFallback = $("#request-fallback");
   if (sendStatus) {
     sendStatus.classList.remove("is-error");
-    sendStatus.textContent = "By sending, your reply contact, request details, estimate, and preferred time go through FormSubmit to R&C Lawncare. Photos are not uploaded. A requested time is not held until confirmed.";
+    sendStatus.textContent = "By sending, your reply contact, request details, estimate, and preferred time go through FormSubmit to R&C LawnCare. Photos are not uploaded. A requested time is not held until confirmed.";
   }
   if (sendButton) {
     sendButton.disabled = false;
@@ -613,7 +613,7 @@ function answerAssistant() {
   } else if (/shape|irregular|triangle|circle|section|rectangle/.test(question)) {
     answer = "For an irregular lawn, divide it into a few simple rectangles, calculate each length × width, and add the areas together. The result only needs to be close enough for a planning range.";
   } else if (/travel|far|distance|outside|town|steamboat|service area|location/.test(question)) {
-    answer = "R&C Lawncare provides mowing in and near Steamboat Springs. A property farther from town is considered only when the schedule allows and may have a small travel fee, which is disclosed before booking.";
+    answer = "R&C LawnCare provides mowing in and near Steamboat Springs. A property farther from town is considered only when the schedule allows and may have a small travel fee, which is disclosed before booking.";
   } else if (/square|size|feet|measure|area/.test(question)) {
     answer = "Use mowable grass area only. Exclude the house, driveway, deck, and large beds. If you do not know the square feet, choose Help me calculate it and enter approximate lawn length and width.";
   } else if (/include|mow|edge|trim/.test(question)) {
@@ -621,7 +621,7 @@ function answerAssistant() {
   } else if (/cleanup|leaf|leaves|twig|weed/.test(question)) {
     answer = "Optional cleanup means a short-grass trim plus removal of leaves, twigs, and weeds. Because debris volume varies, the final cleanup price is confirmed after photos or an on-site look.";
   } else if (/schedule|date|time|book|available/.test(question)) {
-    answer = "Choose a specific day, then one open start time. The 8:00 AM, 11:00 AM, and 2:00 PM options are intentionally three hours apart for mowing and local travel. Fully booked days and occupied starts cannot be selected. Your choice is still a request until R&C Lawncare confirms it directly.";
+    answer = "Choose a specific day, then one open start time. The 8:00 AM, 11:00 AM, and 2:00 PM options are intentionally three hours apart for mowing and local travel. Fully booked days and occupied starts cannot be selected. Your choice is still a request until R&C LawnCare confirms it directly.";
   } else if (/pay|payment|cash|card|invoice/.test(question)) {
     answer = "Payment details are confirmed directly with the owner before work begins. The website does not collect payment or card information.";
   } else if (/access|gate|fence|dog|pet|lock/.test(question)) {
@@ -658,7 +658,7 @@ $$('.copy-value').forEach((button) => {
 $(".copy-contact")?.addEventListener("click", async () => {
   const status = $(".contact-copy-status");
   try {
-    await copyText(`R&C Lawncare\nCall or text: ${BUSINESS.phoneDisplay}\nAlternate: 970 457 0542\nEmail: ${BUSINESS.email}`);
+    await copyText(`R&C LawnCare\nCall or text: ${BUSINESS.phoneDisplay}\nAlternate: 970 457 0542\nEmail: ${BUSINESS.email}`);
     setStatus(status, "All contact details copied.");
   } catch {
     setStatus(status, "Copy is unavailable. Select the contact information manually.");
